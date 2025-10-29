@@ -154,9 +154,112 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         'body': json.dumps({'success': True})
                     }
         
+        elif method == 'PUT':
+            body_data = json.loads(event.get('body', '{}'))
+            referral_id = body_data.get('referral_id')
+            referee_id = body_data.get('referee_id')
+            card_ordered = body_data.get('card_ordered')
+            card_activated = body_data.get('card_activated')
+            first_purchase = body_data.get('first_purchase_completed')
+            
+            if not referee_id:
+                return {
+                    'statusCode': 400,
+                    'headers': headers,
+                    'body': json.dumps({'error': 'referee_id required'})
+                }
+            
+            update_fields = []
+            update_values = []
+            
+            if card_ordered is not None:
+                update_fields.append('card_ordered = %s')
+                update_values.append(card_ordered)
+            
+            if card_activated is not None:
+                update_fields.append('card_activated = %s')
+                update_values.append(card_activated)
+            
+            if first_purchase is not None:
+                update_fields.append('first_purchase_completed = %s')
+                update_values.append(first_purchase)
+            
+            if update_fields:
+                update_values.append(referee_id)
+                query = f"UPDATE users SET {', '.join(update_fields)} WHERE user_id = %s"
+                cur.execute(query, update_values)
+                
+                if first_purchase:
+                    cur.execute(
+                        """
+                        UPDATE referrals 
+                        SET status = 'completed', earned = 200, completed_at = CURRENT_TIMESTAMP
+                        WHERE referee_id = %s AND status = 'pending'
+                        RETURNING referrer_id
+                        """,
+                        (referee_id,)
+                    )
+                    referrer = cur.fetchone()
+                    
+                    if referrer:
+                        cur.execute(
+                            """
+                            UPDATE users 
+                            SET total_earned = total_earned + 200
+                            WHERE user_id = %s
+                            """,
+                            (referrer['referrer_id'],)
+                        )
+                
+                conn.commit()
+                
+                return {
+                    'statusCode': 200,
+                    'headers': headers,
+                    'body': json.dumps({'success': True, 'message': 'Status updated'})
+                }
+        
         elif method == 'GET':
             params = event.get('queryStringParameters', {}) or {}
             user_id = params.get('user_id')
+            admin = params.get('admin')
+            
+            if admin == 'true':
+                cur.execute(
+                    """
+                    SELECT r.id, r.referee_id, r.referrer_id, r.status, r.earned, r.created_at,
+                           u.user_id, u.phone, u.card_ordered, u.card_activated, u.first_purchase_completed,
+                           ref.referral_code as referrer_code
+                    FROM referrals r
+                    LEFT JOIN users u ON r.referee_id = u.user_id
+                    LEFT JOIN users ref ON r.referrer_id = ref.user_id
+                    ORDER BY r.created_at DESC
+                    """
+                )
+                all_referrals = cur.fetchall()
+                
+                referrals_list = []
+                for idx, ref in enumerate(all_referrals):
+                    referrals_list.append({
+                        'id': ref['id'],
+                        'referee_id': ref['referee_id'],
+                        'referrer_id': ref['referrer_id'],
+                        'referrer_code': ref['referrer_code'],
+                        'name': f'Друг {idx + 1}',
+                        'phone': ref['phone'],
+                        'status': ref['status'],
+                        'earned': ref['earned'],
+                        'card_ordered': ref['card_ordered'],
+                        'card_activated': ref['card_activated'],
+                        'first_purchase_completed': ref['first_purchase_completed'],
+                        'date': ref['created_at'].strftime('%Y-%m-%d %H:%M') if ref['created_at'] else ''
+                    })
+                
+                return {
+                    'statusCode': 200,
+                    'headers': headers,
+                    'body': json.dumps({'referrals': referrals_list})
+                }
             
             if not user_id:
                 return {

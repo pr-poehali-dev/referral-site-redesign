@@ -14,6 +14,21 @@ import { useToast } from '@/hooks/use-toast';
 const REFERRAL_API = 'https://functions.poehali.dev/48a1fc61-c1b4-41da-9d4b-2e0bd9dd8789';
 const WITHDRAWAL_API = 'https://functions.poehali.dev/61f2a443-2e9f-4147-b9aa-cc99ba2fd219';
 
+interface Referral {
+  id: number;
+  referee_id: string;
+  referrer_id: string;
+  referrer_code: string;
+  name: string;
+  phone: string;
+  status: 'pending' | 'completed';
+  earned: number;
+  card_ordered: boolean;
+  card_activated: boolean;
+  first_purchase_completed: boolean;
+  date: string;
+}
+
 const Index = () => {
   const [activeTab, setActiveTab] = useState('card');
   const [isAdmin, setIsAdmin] = useState(false);
@@ -25,6 +40,9 @@ const Index = () => {
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState<any>(null);
   const [withdrawRequests, setWithdrawRequests] = useState<any[]>([]);
+  const [allReferrals, setAllReferrals] = useState<Referral[]>([]);
+  const [selectedReferral, setSelectedReferral] = useState<Referral | null>(null);
+  const [referralDialogOpen, setReferralDialogOpen] = useState(false);
   
   const { toast } = useToast();
   const userId = localStorage.getItem('user_id') || `USER_${Date.now()}`;
@@ -134,10 +152,23 @@ const Index = () => {
     });
   };
 
+  const fetchAllReferrals = async () => {
+    try {
+      const response = await fetch(`${REFERRAL_API}?admin=true`);
+      if (response.ok) {
+        const data = await response.json();
+        setAllReferrals(data.referrals || []);
+      }
+    } catch (error) {
+      console.error('Error fetching all referrals:', error);
+    }
+  };
+  
   const handleAdminLogin = async () => {
     if (adminCode === ADMIN_CODE) {
       setIsAdmin(true);
       await fetchWithdrawRequests();
+      await fetchAllReferrals();
       toast({
         title: '✅ Вход выполнен',
         description: 'Добро пожаловать в админ-панель',
@@ -252,6 +283,31 @@ const Index = () => {
       toast({
         title: '❌ Ошибка',
         description: 'Не удалось обработать заявку',
+        variant: 'destructive'
+      });
+    }
+  };
+  
+  const handleUpdateReferralStatus = async (referee_id: string, updates: any) => {
+    try {
+      const response = await fetch(REFERRAL_API, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ referee_id, ...updates })
+      });
+      
+      if (response.ok) {
+        toast({
+          title: '✅ Статус обновлен',
+          description: 'Данные успешно сохранены',
+        });
+        await fetchAllReferrals();
+        setReferralDialogOpen(false);
+      }
+    } catch (error) {
+      toast({
+        title: '❌ Ошибка',
+        description: 'Не удалось обновить статус',
         variant: 'destructive'
       });
     }
@@ -820,13 +876,19 @@ const Index = () => {
                       </Button>
                     </div>
                   ) : (
-                    <div className="space-y-4 mt-4">
-                      <div className="flex justify-between items-center">
-                        <h3 className="text-lg font-bold">Заявки на вывод</h3>
-                        <Badge className="bg-green-500 text-white">Авторизован</Badge>
-                      </div>
-                      <div className="space-y-3">
-                        {withdrawRequests.map((request) => (
+                    <Tabs defaultValue="withdrawals" className="mt-4">
+                      <TabsList className="grid w-full grid-cols-2 mb-4">
+                        <TabsTrigger value="withdrawals">Заявки на вывод</TabsTrigger>
+                        <TabsTrigger value="referrals">Управление рефералами</TabsTrigger>
+                      </TabsList>
+                      
+                      <TabsContent value="withdrawals" className="space-y-4">
+                        <div className="flex justify-between items-center">
+                          <h3 className="text-lg font-bold">Заявки на вывод</h3>
+                          <Badge className="bg-green-500 text-white">Авторизован</Badge>
+                        </div>
+                        <div className="space-y-3">
+                          {withdrawRequests.map((request) => (
                           <Card key={request.id} className={`${
                             request.status === 'approved' ? 'bg-green-50 border-green-200' :
                             request.status === 'rejected' ? 'bg-red-50 border-red-200' :
@@ -889,7 +951,177 @@ const Index = () => {
                             </CardContent>
                           </Card>
                         ))}
+                        </div>
+                      </TabsContent>
+                      
+                      <TabsContent value="referrals" className="space-y-4">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <h3 className="text-lg font-bold">Управление рефералами</h3>
+                            <p className="text-sm text-muted-foreground">Отметьте выполнение условий</p>
+                          </div>
+                          <Badge className="bg-green-500 text-white">Всего: {allReferrals.length}</Badge>
+                        </div>
+                        <div className="space-y-3">
+                          {allReferrals.map((ref) => (
+                            <Card key={ref.id} className={`${
+                              ref.status === 'completed' ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'
+                            } cursor-pointer hover:shadow-md transition-shadow`} onClick={() => {
+                              setSelectedReferral(ref);
+                              setReferralDialogOpen(true);
+                            }}>
+                              <CardContent className="p-4">
+                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                  <div className="space-y-2">
+                                    <div className="flex items-center gap-2">
+                                      <p className="font-semibold">{ref.name}</p>
+                                      <Badge variant="outline">ID: {ref.referee_id.slice(0, 8)}...</Badge>
+                                    </div>
+                                    <p className="text-sm text-muted-foreground">Пригласил: {ref.referrer_code}</p>
+                                    <div className="flex gap-2 flex-wrap">
+                                      {ref.card_ordered ? (
+                                        <Badge className="bg-blue-100 text-blue-700">
+                                          <Icon name="CreditCard" size={12} />
+                                          Карта заказана
+                                        </Badge>
+                                      ) : (
+                                        <Badge variant="outline" className="text-gray-500">
+                                          <Icon name="CreditCard" size={12} />
+                                          Нет карты
+                                        </Badge>
+                                      )}
+                                      {ref.card_activated ? (
+                                        <Badge className="bg-purple-100 text-purple-700">
+                                          <Icon name="Zap" size={12} />
+                                          Активирована
+                                        </Badge>
+                                      ) : (
+                                        <Badge variant="outline" className="text-gray-500">
+                                          <Icon name="Zap" size={12} />
+                                          Не активна
+                                        </Badge>
+                                      )}
+                                      {ref.first_purchase_completed ? (
+                                        <Badge className="bg-green-100 text-green-700">
+                                          <Icon name="ShoppingCart" size={12} />
+                                          Покупка +200₽
+                                        </Badge>
+                                      ) : (
+                                        <Badge variant="outline" className="text-gray-500">
+                                          <Icon name="ShoppingCart" size={12} />
+                                          Нет покупки
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-3">
+                                    {ref.status === 'completed' ? (
+                                      <Badge className="bg-green-600 text-white text-lg px-4 py-2">
+                                        <Icon name="CheckCircle" size={16} />
+                                        +{ref.earned}₽
+                                      </Badge>
+                                    ) : (
+                                      <Badge className="bg-amber-600 text-white">
+                                        <Icon name="Clock" size={14} />
+                                        Ожидание
+                                      </Badge>
+                                    )}
+                                    <Icon name="ChevronRight" size={20} className="text-muted-foreground" />
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      </TabsContent>
+                    </Tabs>
+                  )}
+                </DialogContent>
+              </Dialog>
+              
+              <Dialog open={referralDialogOpen} onOpenChange={setReferralDialogOpen}>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle className="text-2xl">Обновить статус реферала</DialogTitle>
+                    <DialogDescription>Отметьте выполненные условия для начисления бонуса</DialogDescription>
+                  </DialogHeader>
+                  {selectedReferral && (
+                    <div className="space-y-4 mt-4">
+                      <div className="p-4 bg-muted rounded-lg">
+                        <p className="font-semibold">{selectedReferral.name}</p>
+                        <p className="text-sm text-muted-foreground">ID: {selectedReferral.referee_id}</p>
+                        <p className="text-sm text-muted-foreground">Пригласил: {selectedReferral.referrer_code}</p>
                       </div>
+                      
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <Icon name="CreditCard" size={20} className="text-blue-600" />
+                            <span>Карта заказана</span>
+                          </div>
+                          <Badge className={selectedReferral.card_ordered ? "bg-blue-600 text-white" : "bg-gray-200"}>
+                            {selectedReferral.card_ordered ? "Да" : "Нет"}
+                          </Badge>
+                        </div>
+                        
+                        <div className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <Icon name="Zap" size={20} className="text-purple-600" />
+                            <span>Карта активирована</span>
+                          </div>
+                          <Badge className={selectedReferral.card_activated ? "bg-purple-600 text-white" : "bg-gray-200"}>
+                            {selectedReferral.card_activated ? "Да" : "Нет"}
+                          </Badge>
+                        </div>
+                        
+                        <div className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <Icon name="ShoppingCart" size={20} className="text-green-600" />
+                            <span>Покупка от 200₽</span>
+                          </div>
+                          <Badge className={selectedReferral.first_purchase_completed ? "bg-green-600 text-white" : "bg-gray-200"}>
+                            {selectedReferral.first_purchase_completed ? "Да" : "Нет"}
+                          </Badge>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-3 gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleUpdateReferralStatus(selectedReferral.referee_id, { card_ordered: !selectedReferral.card_ordered })}
+                        >
+                          <Icon name="CreditCard" size={16} />
+                          {selectedReferral.card_ordered ? "Отменить" : "Заказана"}
+                        </Button>
+                        
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleUpdateReferralStatus(selectedReferral.referee_id, { card_activated: !selectedReferral.card_activated })}
+                        >
+                          <Icon name="Zap" size={16} />
+                          {selectedReferral.card_activated ? "Отменить" : "Активна"}
+                        </Button>
+                        
+                        <Button 
+                          className="bg-green-600 hover:bg-green-700 text-white"
+                          size="sm"
+                          onClick={() => handleUpdateReferralStatus(selectedReferral.referee_id, { first_purchase_completed: !selectedReferral.first_purchase_completed })}
+                        >
+                          <Icon name="ShoppingCart" size={16} />
+                          {selectedReferral.first_purchase_completed ? "Отменить" : "Покупка"}
+                        </Button>
+                      </div>
+                      
+                      {selectedReferral.status === 'completed' && (
+                        <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                          <div className="flex items-center gap-2 text-green-700">
+                            <Icon name="CheckCircle" size={20} />
+                            <p className="font-semibold">Реферал выполнил все условия! Начислено {selectedReferral.earned}₽</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </DialogContent>

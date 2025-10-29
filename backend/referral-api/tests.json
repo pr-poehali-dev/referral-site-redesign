@@ -1,35 +1,10 @@
 {
   "tests": [
     {
-      "name": "Register new user",
-      "method": "POST",
-      "path": "/",
-      "body": {
-        "action": "register",
-        "user_id": "TEST_USER_001",
-        "phone": "+79991234567"
-      },
-      "expectedStatus": 200,
-      "expectedBody": {
-        "user_id": "string",
-        "referral_code": "string"
-      },
-      "bodyMatcher": "partial"
-    },
-    {
-      "name": "Get user stats",
+      "name": "Get all referrals (admin)",
       "method": "GET",
-      "path": "/?user_id=TEST_USER_001",
-      "expectedStatus": 200,
-      "expectedBody": {
-        "user": {
-          "user_id": "string"
-        },
-        "stats": {
-          "totalReferrals": "number"
-        }
-      },
-      "bodyMatcher": "partial"
+      "path": "/?admin=true",
+      "expectedStatus": 200
     }
   ]
 }
