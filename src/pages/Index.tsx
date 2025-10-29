@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -11,6 +11,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
 
+const REFERRAL_API = 'https://functions.poehali.dev/48a1fc61-c1b4-41da-9d4b-2e0bd9dd8789';
+const WITHDRAWAL_API = 'https://functions.poehali.dev/61f2a443-2e9f-4147-b9aa-cc99ba2fd219';
+
 const Index = () => {
   const [activeTab, setActiveTab] = useState('card');
   const [isAdmin, setIsAdmin] = useState(false);
@@ -19,14 +22,20 @@ const Index = () => {
   const [withdrawBank, setWithdrawBank] = useState('');
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [withdrawDialogOpen, setWithdrawDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [userData, setUserData] = useState<any>(null);
+  const [withdrawRequests, setWithdrawRequests] = useState<any[]>([]);
   
   const { toast } = useToast();
-  const userId = 'USER123';
-  const referralLink = `https://card.example.com/ref/${userId}`;
+  const userId = localStorage.getItem('user_id') || `USER_${Date.now()}`;
   const alfaLink = 'https://alfa.me/ASQWHN';
   const ADMIN_CODE = '2025';
+  
+  const referralLink = userData?.user?.referral_code 
+    ? `${window.location.origin}?ref=${userData.user.referral_code}`
+    : `${window.location.origin}?ref=LOADING`;
 
-  const stats = {
+  const stats = userData?.stats || {
     totalReferrals: 0,
     activeReferrals: 0,
     totalEarned: 0,
@@ -34,13 +43,7 @@ const Index = () => {
     completedReferrals: 0,
   };
 
-  const referrals: any[] = [];
-
-  const withdrawRequests = [
-    { id: 1, user: 'USER123', phone: '+79991234567', bank: 'Сбербанк', amount: 1000, status: 'pending', date: '2024-10-28' },
-    { id: 2, user: 'USER456', phone: '+79997654321', bank: 'Тинькофф', amount: 500, status: 'approved', date: '2024-10-27' },
-    { id: 3, user: 'USER789', phone: '+79993334455', bank: 'Альфа-Банк', amount: 2000, status: 'rejected', date: '2024-10-26' },
-  ];
+  const referrals = userData?.referrals || [];
 
   const achievements = [
     { id: 1, title: 'Первый друг', description: 'Пригласите первого друга', completed: false, icon: 'UserPlus' },
@@ -48,6 +51,80 @@ const Index = () => {
     { id: 3, title: 'Эксперт', description: 'Пригласите 10 друзей', completed: false, icon: 'Award' },
     { id: 4, title: 'Легенда', description: 'Пригласите 25 друзей', completed: false, icon: 'Crown' },
   ];
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const refCode = params.get('ref');
+    
+    if (!localStorage.getItem('user_id')) {
+      localStorage.setItem('user_id', userId);
+      if (refCode) {
+        localStorage.setItem('referred_by', refCode);
+      }
+    }
+    
+    registerOrFetchUser();
+  }, []);
+  
+  const registerOrFetchUser = async () => {
+    try {
+      const storedUserId = localStorage.getItem('user_id');
+      const referredBy = localStorage.getItem('referred_by');
+      
+      const checkResponse = await fetch(`${REFERRAL_API}?user_id=${storedUserId}`);
+      
+      if (checkResponse.status === 404) {
+        const registerResponse = await fetch(REFERRAL_API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'register',
+            user_id: storedUserId,
+            referred_by: referredBy
+          })
+        });
+        
+        if (registerResponse.ok) {
+          localStorage.removeItem('referred_by');
+        }
+      }
+      
+      await fetchUserData();
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: '❌ Ошибка',
+        description: 'Не удалось загрузить данные',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const fetchUserData = async () => {
+    try {
+      const response = await fetch(`${REFERRAL_API}?user_id=${userId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setUserData(data);
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    }
+  };
+  
+  const fetchWithdrawRequests = async () => {
+    try {
+      const response = await fetch(`${WITHDRAWAL_API}?admin=true`);
+      if (response.ok) {
+        const data = await response.json();
+        setWithdrawRequests(data.requests || []);
+      }
+    } catch (error) {
+      console.error('Error fetching withdrawal requests:', error);
+    }
+  };
 
   const copyLink = () => {
     navigator.clipboard.writeText(referralLink);
@@ -57,9 +134,10 @@ const Index = () => {
     });
   };
 
-  const handleAdminLogin = () => {
+  const handleAdminLogin = async () => {
     if (adminCode === ADMIN_CODE) {
       setIsAdmin(true);
+      await fetchWithdrawRequests();
       toast({
         title: '✅ Вход выполнен',
         description: 'Добро пожаловать в админ-панель',
@@ -73,7 +151,7 @@ const Index = () => {
     }
   };
 
-  const handleWithdraw = () => {
+  const handleWithdraw = async () => {
     if (!withdrawPhone || !withdrawBank || !withdrawAmount) {
       toast({
         title: '❌ Заполните все поля',
@@ -92,30 +170,103 @@ const Index = () => {
       return;
     }
 
-    toast({
-      title: '✅ Заявка отправлена!',
-      description: 'Ожидайте обработки в течение 1-3 дней',
-    });
-    
-    setWithdrawDialogOpen(false);
-    setWithdrawPhone('');
-    setWithdrawBank('');
-    setWithdrawAmount('');
+    try {
+      const response = await fetch(WITHDRAWAL_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: userId,
+          phone: withdrawPhone,
+          bank: withdrawBank,
+          amount: Number(withdrawAmount)
+        })
+      });
+      
+      if (response.ok) {
+        toast({
+          title: '✅ Заявка отправлена!',
+          description: 'Ожидайте обработки в течение 1-3 дней',
+        });
+        
+        setWithdrawDialogOpen(false);
+        setWithdrawPhone('');
+        setWithdrawBank('');
+        setWithdrawAmount('');
+      } else {
+        const error = await response.json();
+        toast({
+          title: '❌ Ошибка',
+          description: error.error || 'Не удалось создать заявку',
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
+      toast({
+        title: '❌ Ошибка',
+        description: 'Не удалось отправить заявку',
+        variant: 'destructive'
+      });
+    }
   };
 
-  const handleApproveWithdraw = (id: number) => {
-    toast({
-      title: '✅ Заявка одобрена',
-      description: `Выплата #${id} обработана`,
-    });
+  const handleApproveWithdraw = async (id: number) => {
+    try {
+      const response = await fetch(WITHDRAWAL_API, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ request_id: id, status: 'approved' })
+      });
+      
+      if (response.ok) {
+        toast({
+          title: '✅ Заявка одобрена',
+          description: `Выплата #${id} обработана`,
+        });
+        await fetchWithdrawRequests();
+      }
+    } catch (error) {
+      toast({
+        title: '❌ Ошибка',
+        description: 'Не удалось обработать заявку',
+        variant: 'destructive'
+      });
+    }
   };
 
-  const handleRejectWithdraw = (id: number) => {
-    toast({
-      title: '❌ Заявка отклонена',
-      description: `Выплата #${id} отклонена`,
-    });
+  const handleRejectWithdraw = async (id: number) => {
+    try {
+      const response = await fetch(WITHDRAWAL_API, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ request_id: id, status: 'rejected' })
+      });
+      
+      if (response.ok) {
+        toast({
+          title: '❌ Заявка отклонена',
+          description: `Выплата #${id} отклонена`,
+        });
+        await fetchWithdrawRequests();
+      }
+    } catch (error) {
+      toast({
+        title: '❌ Ошибка',
+        description: 'Не удалось обработать заявку',
+        variant: 'destructive'
+      });
+    }
   };
+  
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-muted-foreground">Загрузка...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">

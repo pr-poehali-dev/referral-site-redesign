@@ -1,0 +1,30 @@
+{
+  "tests": [
+    {
+      "name": "Create withdrawal request",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "user_id": "TEST_USER",
+        "phone": "+79991234567",
+        "bank": "sber",
+        "amount": 200
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "success": true
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Get admin requests",
+      "method": "GET",
+      "path": "/?admin=true",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "requests": []
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}
