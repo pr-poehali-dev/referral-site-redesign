@@ -4,35 +4,47 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState('card');
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [adminCode, setAdminCode] = useState('');
+  const [withdrawPhone, setWithdrawPhone] = useState('');
+  const [withdrawBank, setWithdrawBank] = useState('');
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [withdrawDialogOpen, setWithdrawDialogOpen] = useState(false);
+  
   const { toast } = useToast();
   const userId = 'USER123';
   const referralLink = `https://card.example.com/ref/${userId}`;
   const alfaLink = 'https://alfa.me/ASQWHN';
+  const ADMIN_CODE = '2025';
 
   const stats = {
-    totalReferrals: 8,
-    activeReferrals: 5,
-    totalEarned: 1000,
-    pendingEarned: 600,
-    completedReferrals: 5,
+    totalReferrals: 0,
+    activeReferrals: 0,
+    totalEarned: 0,
+    pendingEarned: 0,
+    completedReferrals: 0,
   };
 
-  const referrals = [
-    { id: 1, name: 'Друг 1', status: 'completed', earned: 200, date: '2024-10-15' },
-    { id: 2, name: 'Друг 2', status: 'pending', earned: 0, date: '2024-10-20' },
-    { id: 3, name: 'Друг 3', status: 'completed', earned: 200, date: '2024-10-18' },
-    { id: 4, name: 'Друг 4', status: 'pending', earned: 0, date: '2024-10-22' },
-    { id: 5, name: 'Друг 5', status: 'completed', earned: 200, date: '2024-10-25' },
+  const referrals: any[] = [];
+
+  const withdrawRequests = [
+    { id: 1, user: 'USER123', phone: '+79991234567', bank: 'Сбербанк', amount: 1000, status: 'pending', date: '2024-10-28' },
+    { id: 2, user: 'USER456', phone: '+79997654321', bank: 'Тинькофф', amount: 500, status: 'approved', date: '2024-10-27' },
+    { id: 3, user: 'USER789', phone: '+79993334455', bank: 'Альфа-Банк', amount: 2000, status: 'rejected', date: '2024-10-26' },
   ];
 
   const achievements = [
-    { id: 1, title: 'Первый друг', description: 'Пригласите первого друга', completed: true, icon: 'UserPlus' },
-    { id: 2, title: 'Отличный старт', description: 'Пригласите 5 друзей', completed: true, icon: 'Users' },
+    { id: 1, title: 'Первый друг', description: 'Пригласите первого друга', completed: false, icon: 'UserPlus' },
+    { id: 2, title: 'Отличный старт', description: 'Пригласите 5 друзей', completed: false, icon: 'Users' },
     { id: 3, title: 'Эксперт', description: 'Пригласите 10 друзей', completed: false, icon: 'Award' },
     { id: 4, title: 'Легенда', description: 'Пригласите 25 друзей', completed: false, icon: 'Crown' },
   ];
@@ -42,6 +54,66 @@ const Index = () => {
     toast({
       title: '🎉 Ссылка скопирована!',
       description: 'Поделитесь ей с друзьями',
+    });
+  };
+
+  const handleAdminLogin = () => {
+    if (adminCode === ADMIN_CODE) {
+      setIsAdmin(true);
+      toast({
+        title: '✅ Вход выполнен',
+        description: 'Добро пожаловать в админ-панель',
+      });
+    } else {
+      toast({
+        title: '❌ Неверный код',
+        description: 'Попробуйте ещё раз',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleWithdraw = () => {
+    if (!withdrawPhone || !withdrawBank || !withdrawAmount) {
+      toast({
+        title: '❌ Заполните все поля',
+        description: 'Укажите телефон, банк и сумму',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (Number(withdrawAmount) > stats.totalEarned) {
+      toast({
+        title: '❌ Недостаточно средств',
+        description: 'Вы не можете вывести больше, чем заработали',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    toast({
+      title: '✅ Заявка отправлена!',
+      description: 'Ожидайте обработки в течение 1-3 дней',
+    });
+    
+    setWithdrawDialogOpen(false);
+    setWithdrawPhone('');
+    setWithdrawBank('');
+    setWithdrawAmount('');
+  };
+
+  const handleApproveWithdraw = (id: number) => {
+    toast({
+      title: '✅ Заявка одобрена',
+      description: `Выплата #${id} обработана`,
+    });
+  };
+
+  const handleRejectWithdraw = (id: number) => {
+    toast({
+      title: '❌ Заявка отклонена',
+      description: `Выплата #${id} отклонена`,
     });
   };
 
@@ -418,74 +490,260 @@ const Index = () => {
               </Card>
             </div>
 
-            <Card className="shadow-lg">
-              <CardHeader>
-                <CardTitle className="text-2xl flex items-center gap-2">
-                  <Icon name="TrendingUp" size={24} className="text-primary" />
-                  Прогресс до следующего уровня
-                </CardTitle>
-                <CardDescription>Пригласите ещё {10 - stats.totalReferrals} друзей для достижения "Эксперт"</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <Progress value={(stats.totalReferrals / 10) * 100} className="h-4" />
-                  <div className="flex justify-between text-sm text-muted-foreground">
-                    <span>{stats.totalReferrals} из 10</span>
-                    <span>{Math.round((stats.totalReferrals / 10) * 100)}%</span>
+            {stats.totalEarned === 0 && referrals.length === 0 ? (
+              <Card className="shadow-lg">
+                <CardContent className="py-16">
+                  <div className="flex flex-col items-center justify-center text-center space-y-4">
+                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center">
+                      <Icon name="Users" size={48} className="text-primary" />
+                    </div>
+                    <h3 className="text-2xl font-bold">Пока пусто</h3>
+                    <p className="text-muted-foreground max-w-md">
+                      Начните приглашать друзей, и здесь появится информация о ваших рефералах и заработке!
+                    </p>
+                    <Button size="lg" className="gradient-primary mt-4" onClick={copyLink}>
+                      <Icon name="Share2" size={20} />
+                      Поделиться ссылкой
+                    </Button>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-lg">
-              <CardHeader>
-                <CardTitle className="text-2xl flex items-center gap-2">
-                  <Icon name="History" size={24} className="text-primary" />
-                  История приглашений
-                </CardTitle>
-                <CardDescription>Отслеживайте статус ваших рефералов</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {referrals.map((referral, index) => (
-                    <div
-                      key={referral.id}
-                      className="flex items-center justify-between p-4 rounded-lg border bg-card hover:shadow-md transition-shadow animate-fade-in"
-                      style={{ animationDelay: `${index * 0.05}s` }}
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-full gradient-primary flex items-center justify-center text-white font-bold text-lg">
-                          {referral.name.charAt(referral.name.length - 1)}
-                        </div>
-                        <div>
-                          <p className="font-semibold">{referral.name}</p>
-                          <p className="text-sm text-muted-foreground">{referral.date}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        {referral.status === 'completed' ? (
-                          <>
-                            <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
-                              <Icon name="CheckCircle" size={14} />
-                              Выполнено
-                            </Badge>
-                            <span className="font-bold text-green-600 text-lg">+{referral.earned}₽</span>
-                          </>
-                        ) : (
-                          <>
-                            <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100">
-                              <Icon name="Clock" size={14} />
-                              Ожидание
-                            </Badge>
-                            <span className="font-semibold text-muted-foreground text-lg">—</span>
-                          </>
-                        )}
+                </CardContent>
+              </Card>
+            ) : (
+              <>
+                <Card className="shadow-lg">
+                  <CardHeader>
+                    <CardTitle className="text-2xl flex items-center gap-2">
+                      <Icon name="TrendingUp" size={24} className="text-primary" />
+                      Прогресс до следующего уровня
+                    </CardTitle>
+                    <CardDescription>Пригласите ещё {10 - stats.totalReferrals} друзей для достижения "Эксперт"</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <Progress value={(stats.totalReferrals / 10) * 100} className="h-4" />
+                      <div className="flex justify-between text-sm text-muted-foreground">
+                        <span>{stats.totalReferrals} из 10</span>
+                        <span>{Math.round((stats.totalReferrals / 10) * 100)}%</span>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                  </CardContent>
+                </Card>
+
+                <Card className="shadow-lg">
+                  <CardHeader>
+                    <CardTitle className="text-2xl flex items-center gap-2">
+                      <Icon name="History" size={24} className="text-primary" />
+                      История приглашений
+                    </CardTitle>
+                    <CardDescription>Отслеживайте статус ваших рефералов</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {referrals.map((referral, index) => (
+                        <div
+                          key={referral.id}
+                          className="flex items-center justify-between p-4 rounded-lg border bg-card hover:shadow-md transition-shadow animate-fade-in"
+                          style={{ animationDelay: `${index * 0.05}s` }}
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-full gradient-primary flex items-center justify-center text-white font-bold text-lg">
+                              {referral.name.charAt(referral.name.length - 1)}
+                            </div>
+                            <div>
+                              <p className="font-semibold">{referral.name}</p>
+                              <p className="text-sm text-muted-foreground">{referral.date}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            {referral.status === 'completed' ? (
+                              <>
+                                <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
+                                  <Icon name="CheckCircle" size={14} />
+                                  Выполнено
+                                </Badge>
+                                <span className="font-bold text-green-600 text-lg">+{referral.earned}₽</span>
+                              </>
+                            ) : (
+                              <>
+                                <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100">
+                                  <Icon name="Clock" size={14} />
+                                  Ожидание
+                                </Badge>
+                                <span className="font-semibold text-muted-foreground text-lg">—</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </>
+            )}
+
+            <div className="grid md:grid-cols-2 gap-4">
+              <Dialog open={withdrawDialogOpen} onOpenChange={setWithdrawDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button size="lg" className="gradient-primary h-16 text-lg" disabled={stats.totalEarned === 0}>
+                    <Icon name="Wallet" size={24} />
+                    Вывод средств через СПБ
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle className="text-2xl">Вывод средств</DialogTitle>
+                    <DialogDescription>Заполните данные для перевода через Систему Быстрых Платежей</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 mt-4">
+                    <div>
+                      <Label htmlFor="phone">Номер телефона</Label>
+                      <Input
+                        id="phone"
+                        placeholder="+7 999 123-45-67"
+                        value={withdrawPhone}
+                        onChange={(e) => setWithdrawPhone(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="bank">Банк получателя</Label>
+                      <Select value={withdrawBank} onValueChange={setWithdrawBank}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Выберите банк" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="sber">Сбербанк</SelectItem>
+                          <SelectItem value="tinkoff">Тинькофф</SelectItem>
+                          <SelectItem value="alfa">Альфа-Банк</SelectItem>
+                          <SelectItem value="vtb">ВТБ</SelectItem>
+                          <SelectItem value="raif">Райффайзен</SelectItem>
+                          <SelectItem value="open">Открытие</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="amount">Сумма вывода</Label>
+                      <Input
+                        id="amount"
+                        type="number"
+                        placeholder="0"
+                        value={withdrawAmount}
+                        onChange={(e) => setWithdrawAmount(e.target.value)}
+                      />
+                      <p className="text-sm text-muted-foreground mt-1">Доступно: {stats.totalEarned}₽</p>
+                    </div>
+                    <Button className="w-full gradient-primary" onClick={handleWithdraw}>
+                      <Icon name="Send" size={20} />
+                      Отправить заявку
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button size="lg" variant="outline" className="h-16 text-lg border-2">
+                    <Icon name="Shield" size={24} />
+                    Админ-панель
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle className="text-2xl">Админ-панель</DialogTitle>
+                    <DialogDescription>Управление заявками на вывод средств</DialogDescription>
+                  </DialogHeader>
+                  {!isAdmin ? (
+                    <div className="space-y-4 mt-4">
+                      <div>
+                        <Label htmlFor="adminCode">Код доступа</Label>
+                        <Input
+                          id="adminCode"
+                          type="password"
+                          placeholder="Введите код"
+                          value={adminCode}
+                          onChange={(e) => setAdminCode(e.target.value)}
+                        />
+                      </div>
+                      <Button className="w-full gradient-primary" onClick={handleAdminLogin}>
+                        <Icon name="LogIn" size={20} />
+                        Войти
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4 mt-4">
+                      <div className="flex justify-between items-center">
+                        <h3 className="text-lg font-bold">Заявки на вывод</h3>
+                        <Badge className="bg-green-500 text-white">Авторизован</Badge>
+                      </div>
+                      <div className="space-y-3">
+                        {withdrawRequests.map((request) => (
+                          <Card key={request.id} className={`${
+                            request.status === 'approved' ? 'bg-green-50 border-green-200' :
+                            request.status === 'rejected' ? 'bg-red-50 border-red-200' :
+                            'bg-amber-50 border-amber-200'
+                          }`}>
+                            <CardContent className="p-4">
+                              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2">
+                                    <Badge variant="outline">ID: {request.user}</Badge>
+                                    <span className="text-sm text-muted-foreground">{request.date}</span>
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-2 text-sm">
+                                    <div>
+                                      <span className="text-muted-foreground">Телефон:</span>
+                                      <p className="font-mono">{request.phone}</p>
+                                    </div>
+                                    <div>
+                                      <span className="text-muted-foreground">Банк:</span>
+                                      <p className="font-semibold">{request.bank}</p>
+                                    </div>
+                                  </div>
+                                  <div className="text-2xl font-bold text-gradient">
+                                    {request.amount}₽
+                                  </div>
+                                </div>
+                                {request.status === 'pending' && (
+                                  <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      className="bg-green-600 hover:bg-green-700"
+                                      onClick={() => handleApproveWithdraw(request.id)}
+                                    >
+                                      <Icon name="Check" size={16} />
+                                      Принять
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="destructive"
+                                      onClick={() => handleRejectWithdraw(request.id)}
+                                    >
+                                      <Icon name="X" size={16} />
+                                      Отклонить
+                                    </Button>
+                                  </div>
+                                )}
+                                {request.status === 'approved' && (
+                                  <Badge className="bg-green-600 text-white">
+                                    <Icon name="CheckCircle" size={14} />
+                                    Одобрено
+                                  </Badge>
+                                )}
+                                {request.status === 'rejected' && (
+                                  <Badge className="bg-red-600 text-white">
+                                    <Icon name="XCircle" size={14} />
+                                    Отклонено
+                                  </Badge>
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </DialogContent>
+              </Dialog>
+            </div>
           </TabsContent>
         </Tabs>
 
