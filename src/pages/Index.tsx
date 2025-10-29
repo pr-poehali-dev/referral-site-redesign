@@ -8,10 +8,11 @@ import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
 
 const Index = () => {
-  const [activeTab, setActiveTab] = useState('home');
+  const [activeTab, setActiveTab] = useState('card');
   const { toast } = useToast();
   const userId = 'USER123';
   const referralLink = `https://card.example.com/ref/${userId}`;
+  const alfaLink = 'https://alfa.me/ASQWHN';
 
   const stats = {
     totalReferrals: 8,
@@ -54,13 +55,17 @@ const Index = () => {
                 Реферальная программа
               </h1>
               <p className="text-muted-foreground text-lg">
-                Приглашайте друзей и зарабатывайте вместе! 🚀
+                Получи 1000₽ и приглашай друзей! 🚀
               </p>
             </div>
-            <TabsList className="grid grid-cols-2 w-full md:w-auto">
+            <TabsList className="grid grid-cols-3 w-full md:w-auto">
+              <TabsTrigger value="card" className="gap-2">
+                <Icon name="CreditCard" size={16} />
+                Карта
+              </TabsTrigger>
               <TabsTrigger value="home" className="gap-2">
-                <Icon name="Home" size={16} />
-                Главная
+                <Icon name="Gift" size={16} />
+                Программа
               </TabsTrigger>
               <TabsTrigger value="cabinet" className="gap-2">
                 <Icon name="LayoutDashboard" size={16} />
@@ -68,6 +73,170 @@ const Index = () => {
               </TabsTrigger>
             </TabsList>
           </div>
+
+          <TabsContent value="card" className="space-y-8 mt-0">
+            <div className="grid lg:grid-cols-2 gap-6 animate-scale-in">
+              <Card className="bg-gradient-to-br from-emerald-500 via-green-500 to-teal-600 text-white border-0 shadow-2xl animate-pulse-glow overflow-hidden relative">
+                <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full -mr-48 -mt-48"></div>
+                <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full -ml-32 -mb-32"></div>
+                <CardHeader className="relative z-10">
+                  <div className="flex items-center justify-between mb-4">
+                    <CardTitle className="text-4xl font-black">1000₽</CardTitle>
+                    <Icon name="Sparkles" size={48} className="animate-bounce-coin" />
+                  </div>
+                  <CardDescription className="text-white/90 text-2xl font-bold">
+                    Привет, друзья! 🌟
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="relative z-10 space-y-6">
+                  <p className="text-lg leading-relaxed">
+                    У нас отличная новость! Вы можете получить <span className="font-bold text-2xl">500₽</span> от нас и еще{' '}
+                    <span className="font-bold text-2xl">500₽</span> от Альфа-Банка! В итоге ваша сумма составит{' '}
+                    <span className="font-black text-3xl">1000₽</span>!
+                  </p>
+
+                  <div className="space-y-3 bg-white/10 backdrop-blur p-6 rounded-2xl">
+                    <h3 className="text-xl font-bold mb-4">Что нужно сделать?</h3>
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-full bg-white text-green-600 flex items-center justify-center font-bold shrink-0">
+                        1
+                      </div>
+                      <p>Оформить Альфа-Карту по нашей ссылке</p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-full bg-white text-green-600 flex items-center justify-center font-bold shrink-0">
+                        2
+                      </div>
+                      <p>Активировать карту в приложении</p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-full bg-white text-green-600 flex items-center justify-center font-bold shrink-0">
+                        3
+                      </div>
+                      <p>Сделать покупку от <span className="font-bold">200₽</span></p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="space-y-6">
+                <Card className="shadow-lg hover:shadow-2xl transition-all">
+                  <CardHeader>
+                    <CardTitle className="text-2xl flex items-center gap-2">
+                      <Icon name="Gift" size={24} className="text-emerald-500" />
+                      Двойная выгода!
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="p-4 bg-gradient-to-r from-purple-100 to-pink-100 rounded-xl">
+                      <div className="flex items-center gap-3 mb-2">
+                        <Icon name="Coins" size={24} className="text-primary" />
+                        <span className="font-bold text-lg">500₽ от нас</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">За оформление карты по нашей ссылке</p>
+                    </div>
+                    <div className="p-4 bg-gradient-to-r from-blue-100 to-cyan-100 rounded-xl">
+                      <div className="flex items-center gap-3 mb-2">
+                        <Icon name="Coins" size={24} className="text-blue-600" />
+                        <span className="font-bold text-lg">500₽ от Альфа-Банка</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">Официальный бонус банка за активацию</p>
+                    </div>
+                    <div className="pt-4 border-t-2 border-dashed">
+                      <div className="flex items-center justify-between text-2xl font-black">
+                        <span>Итого:</span>
+                        <span className="text-gradient">1000₽</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="shadow-lg">
+                  <CardHeader>
+                    <CardTitle className="text-xl flex items-center gap-2">
+                      <Icon name="Clock" size={20} className="text-accent" />
+                      Быстро и просто
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <Icon name="Check" size={20} className="text-green-600" />
+                      <span>Оформление за 5 минут онлайн</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Icon name="Check" size={20} className="text-green-600" />
+                      <span>Бесплатное обслуживание</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Icon name="Check" size={20} className="text-green-600" />
+                      <span>Кэшбэк до 10% с покупок</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Icon name="Check" size={20} className="text-green-600" />
+                      <span>Бонусы за каждого друга</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+
+            <Card className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-orange-200 shadow-lg">
+              <CardContent className="p-6">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center">
+                      <Icon name="Rocket" size={32} className="text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-bold text-foreground">Готовы получить 1000₽?</h3>
+                      <p className="text-muted-foreground">Оформите карту прямо сейчас!</p>
+                    </div>
+                  </div>
+                  <Button
+                    size="lg"
+                    className="gradient-primary text-xl px-8 py-6 shadow-lg hover:shadow-xl transition-all animate-pulse-glow"
+                    onClick={() => window.open(alfaLink, '_blank')}
+                  >
+                    <Icon name="CreditCard" size={24} />
+                    Оформить карту
+                    <Icon name="ArrowRight" size={24} />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-2xl flex items-center gap-2">
+                  <Icon name="HelpCircle" size={24} className="text-primary" />
+                  Частые вопросы
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <h4 className="font-bold mb-2">Когда я получу бонусы?</h4>
+                  <p className="text-muted-foreground">
+                    500₽ от нас поступят после совершения первой покупки. 500₽ от Альфа-Банка начисляются согласно
+                    условиям банка.
+                  </p>
+                </div>
+                <div>
+                  <h4 className="font-bold mb-2">Можно ли заработать больше?</h4>
+                  <p className="text-muted-foreground">
+                    Да! После оформления карты вы получите свою реферальную ссылку и сможете приглашать друзей,
+                    зарабатывая по 200₽ за каждого!
+                  </p>
+                </div>
+                <div>
+                  <h4 className="font-bold mb-2">Есть ли скрытые платежи?</h4>
+                  <p className="text-muted-foreground">
+                    Нет! Карта полностью бесплатна при выполнении условий банка. Все бонусы — это реальные деньги на
+                    вашу карту.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="home" className="space-y-8 mt-0">
             <div className="grid md:grid-cols-2 gap-6 animate-scale-in">
@@ -115,20 +284,6 @@ const Index = () => {
                     </div>
                     <Button onClick={copyLink} size="lg" className="shrink-0 gradient-primary">
                       <Icon name="Copy" size={20} />
-                    </Button>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    <Button variant="outline" className="gap-2">
-                      <Icon name="MessageCircle" size={18} className="text-green-600" />
-                      WhatsApp
-                    </Button>
-                    <Button variant="outline" className="gap-2">
-                      <Icon name="Send" size={18} className="text-blue-600" />
-                      Telegram
-                    </Button>
-                    <Button variant="outline" className="gap-2">
-                      <Icon name="Mail" size={18} className="text-red-600" />
-                      Email
                     </Button>
                   </div>
                 </CardContent>
@@ -333,6 +488,36 @@ const Index = () => {
             </Card>
           </TabsContent>
         </Tabs>
+
+        <div className="grid md:grid-cols-3 gap-4 mt-8">
+          <Button
+            size="lg"
+            variant="outline"
+            className="gap-2 h-16 text-lg hover:bg-green-50 hover:border-green-500 hover:text-green-700 transition-all"
+            onClick={() => window.open('https://wa.me/?text=' + encodeURIComponent(referralLink), '_blank')}
+          >
+            <Icon name="MessageCircle" size={24} className="text-green-600" />
+            Поделиться в WhatsApp
+          </Button>
+          <Button
+            size="lg"
+            variant="outline"
+            className="gap-2 h-16 text-lg hover:bg-blue-50 hover:border-blue-500 hover:text-blue-700 transition-all"
+            onClick={() => window.open('https://t.me/share/url?url=' + encodeURIComponent(referralLink), '_blank')}
+          >
+            <Icon name="Send" size={24} className="text-blue-600" />
+            Поделиться в Telegram
+          </Button>
+          <Button
+            size="lg"
+            variant="outline"
+            className="gap-2 h-16 text-lg hover:bg-purple-50 hover:border-purple-500 hover:text-purple-700 transition-all"
+            onClick={copyLink}
+          >
+            <Icon name="Copy" size={24} className="text-purple-600" />
+            Скопировать ссылку
+          </Button>
+        </div>
       </div>
     </div>
   );
